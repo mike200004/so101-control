@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "/Users/michaelmccormack/so101-env/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.DS_Store": true
+  }
+}

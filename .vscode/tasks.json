@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "followerPort",
+      "type": "promptString",
+      "description": "Follower arm port (from Find arm ports), e.g. /dev/tty.usbmodem…"
+    },
+    {
+      "id": "leaderPort",
+      "type": "promptString",
+      "description": "Leader arm port (from Find arm ports), e.g. /dev/tty.usbmodem…"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "SO-101: Find arm ports",
+      "type": "process",
+      "command": "/Users/michaelmccormack/so101-env/bin/lerobot-find-port",
+      "problemMatcher": []
+    },
+    {
+      "label": "SO-101: Calibrate leader",
+      "type": "process",
+      "command": "/Users/michaelmccormack/so101-env/bin/lerobot-calibrate",
+      "args": [
+        "--teleop.type=so101_leader",
+        "--teleop.port=${input:leaderPort}",
+        "--teleop.id=michael_leader"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "SO-101: Teleoperate leader → follower",
+      "type": "process",
+      "command": "/Users/michaelmccormack/so101-env/bin/lerobot-teleoperate",
+      "args": [
+        "--robot.type=so101_follower",
+        "--robot.port=${input:followerPort}",
+        "--robot.id=michael_arm",
+        "--teleop.type=so101_leader",
+        "--teleop.port=${input:leaderPort}",
+        "--teleop.id=michael_leader",
+        "--display_data=true"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "SO-101: Find USB cameras",
+      "type": "process",
+      "command": "/Users/michaelmccormack/so101-env/bin/lerobot-find-cameras",
+      "args": ["opencv"],
+      "problemMatcher": []
+    }
+  ]
+}
