@@ -1,0 +1,9 @@
+<library path="so101_hardware">
+  <class name="so101_hardware/SO101SystemHardware"
+         type="so101_hardware::SO101SystemHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      SO-101 arm: six Feetech STS3215 servos on one serial bus, calibrated from a LeRobot calibration file.
+    </description>
+  </class>
+</library>
