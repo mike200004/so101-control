@@ -47,3 +47,20 @@ jobs:
           path: |
             ws/log
             ws/build/*/test_results
+
+  docker:
+    name: Docker image build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f docker/Dockerfile -t so101-control .
+
+      - name: Check the workspace is installed in the image
+        run: |
+          for pkg in so101_description so101_hardware so101_bringup; do
+            docker run --rm so101-control ros2 pkg prefix "$pkg"
+          done
+          docker run --rm so101-control \
+            test -x /ws/install/so101_hardware/lib/so101_hardware/fake_servo_bus
