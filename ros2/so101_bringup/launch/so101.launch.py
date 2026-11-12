@@ -33,6 +33,15 @@ def _setup(context):
     if hardware not in ('real', 'fake_bus', 'mock'):
         raise RuntimeError(f"hardware must be real, fake_bus or mock, got '{hardware}'")
 
+    # `calibration_file:=~/...` reaches us unexpanded (the shell does not
+    # expand a tilde after ":="). Resolve it here and check the file exists, so
+    # a typo fails now with a clear message rather than as a plugin init error
+    # buried in the controller_manager output.
+    if calibration_file and hardware != 'mock':
+        calibration_file = os.path.abspath(os.path.expanduser(calibration_file))
+        if not os.path.isfile(calibration_file):
+            raise RuntimeError(f'calibration_file not found: {calibration_file}')
+
     hw_share = FindPackageShare('so101_hardware').perform(context)
     desc_share = FindPackageShare('so101_description').perform(context)
     bringup_share = FindPackageShare('so101_bringup').perform(context)
