@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
+#include <string>
 
 #include "so101_hardware/calibration.hpp"
 #include "so101_hardware/joint_mapping.hpp"
@@ -160,4 +162,50 @@ TEST(Calibration, RejectsEmptyRange)
 TEST(Calibration, RejectsInvalidJson)
 {
   EXPECT_THROW(parse_calibration("{not json"), std::runtime_error);
+}
+
+TEST(Calibration, RejectsNonObjectTopLevel)
+{
+  EXPECT_THROW(parse_calibration("[1, 2, 3]"), std::runtime_error);
+}
+
+TEST(Calibration, RejectsNonIntegerField)
+{
+  EXPECT_THROW(
+    parse_calibration(
+      R"({"m": {"id": 1, "drive_mode": 0, "homing_offset": 0.5, "range_min": 0, "range_max": 9}})"),
+    std::runtime_error);
+}
+
+TEST(Calibration, RejectsOutOfRangeValues)
+{
+  const auto motor = [](int id, int drive_mode, int homing_offset, int min, int max) {
+      return "{\"m\": {\"id\": " + std::to_string(id) + ", \"drive_mode\": " +
+             std::to_string(drive_mode) + ", \"homing_offset\": " +
+             std::to_string(homing_offset) + ", \"range_min\": " + std::to_string(min) +
+             ", \"range_max\": " + std::to_string(max) + "}}";
+    };
+  EXPECT_NO_THROW(parse_calibration(motor(253, 1, -2047, 0, 4095)));
+  EXPECT_THROW(parse_calibration(motor(254, 0, 0, 0, 4095)), std::runtime_error);  // broadcast
+  EXPECT_THROW(parse_calibration(motor(-1, 0, 0, 0, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, 2, 0, 0, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, -1, 0, 0, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, 0, 2048, 0, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, 0, -2048, 0, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, 0, 0, -1, 4095)), std::runtime_error);
+  EXPECT_THROW(parse_calibration(motor(1, 0, 0, 0, 4096)), std::runtime_error);
+}
+
+TEST(Calibration, ExpandsLeadingTildeOnly)
+{
+  const char * home = std::getenv("HOME");
+  ASSERT_NE(home, nullptr);
+  EXPECT_EQ(expand_user("~/cal.json"), std::string(home) + "/cal.json");
+  EXPECT_EQ(expand_user("/abs/~/cal.json"), "/abs/~/cal.json");
+  EXPECT_EQ(expand_user("relative.json"), "relative.json");
+}
+
+TEST(Calibration, LoadReportsMissingFile)
+{
+  EXPECT_THROW(load_calibration("/nonexistent/so101_calibration.json"), std::runtime_error);
 }

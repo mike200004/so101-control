@@ -53,6 +53,20 @@ Calibration parse_calibration(const std::string & json_text)
     if (m.id < 0 || m.id > 253) {
       throw std::runtime_error("calibration: motor '" + name + "' has invalid id");
     }
+    // LeRobot only writes 0 (normal) or 1 (inverted). Anything else is a
+    // corrupt or hand-edited file, and guessing the direction is unsafe.
+    if (m.drive_mode != 0 && m.drive_mode != 1) {
+      throw std::runtime_error(
+              "calibration: motor '" + name + "' has drive_mode " +
+              std::to_string(m.drive_mode) + " (expected 0 or 1)");
+    }
+    // HOMING_OFFSET is sign-magnitude with the sign in bit 11, so no servo
+    // can hold (or report) a larger magnitude.
+    if (m.homing_offset < -2047 || m.homing_offset > 2047) {
+      throw std::runtime_error(
+              "calibration: motor '" + name + "' has homing_offset " +
+              std::to_string(m.homing_offset) + " outside -2047..2047");
+    }
     if (m.range_min >= m.range_max) {
       throw std::runtime_error(
               "calibration: motor '" + name + "' has range_min >= range_max");
