@@ -45,6 +45,25 @@ double parse_limit(const std::string & s, double fallback)
   return s.empty() ? fallback : std::stod(s);
 }
 
+void require_at_least(const std::string & name, int value, int minimum)
+{
+  if (value < minimum) {
+    throw std::invalid_argument(
+            name + " must be at least " + std::to_string(minimum) + ", got " +
+            std::to_string(value));
+  }
+}
+
+void require_gain(const std::string & name, int value)
+{
+  // Gains are 8-bit EEPROM registers; a negative value means "leave as is".
+  if (value > 255) {
+    throw std::invalid_argument(
+            name + " must be 0..255 (or negative to leave the servo's value unchanged), got " +
+            std::to_string(value));
+  }
+}
+
 }  // namespace
 
 SO101SystemHardware::SO101SystemHardware()
@@ -78,6 +97,14 @@ SO101SystemHardware::CallbackReturn SO101SystemHardware::on_init(
     params_.p_coefficient = std::stoi(get_param(hp, "p_coefficient", "16"));
     params_.i_coefficient = std::stoi(get_param(hp, "i_coefficient", "0"));
     params_.d_coefficient = std::stoi(get_param(hp, "d_coefficient", "32"));
+
+    require_at_least("baudrate", params_.baudrate, 1);
+    require_at_least("timeout_us", params_.timeout_us, 1);
+    // 0 would make read() fail on the first missed reply instead of tolerating it.
+    require_at_least("max_consecutive_read_failures", params_.max_consecutive_read_failures, 1);
+    require_gain("p_coefficient", params_.p_coefficient);
+    require_gain("i_coefficient", params_.i_coefficient);
+    require_gain("d_coefficient", params_.d_coefficient);
 
     if (params_.calibration_file.empty()) {
       RCLCPP_FATAL(
@@ -118,6 +145,13 @@ SO101SystemHardware::CallbackReturn SO101SystemHardware::on_init(
       MotorCalibration cal = cal_it->second;
       if (ji.parameters.count("id")) {
         cal.id = std::stoi(ji.parameters.at("id"));
+        // Same range the calibration parser enforces; anything else would
+        // silently wrap in the 8-bit ID field and address a different servo.
+        if (cal.id < 0 || cal.id > 253) {
+          throw std::invalid_argument(
+                  "joint '" + ji.name + "': servo id " + std::to_string(cal.id) +
+                  " is outside 0..253");
+        }
       }
       if (!seen_ids.insert(cal.id).second) {
         RCLCPP_FATAL(logger_, "Servo ID %d is assigned to more than one joint", cal.id);

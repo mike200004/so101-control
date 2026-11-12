@@ -5,6 +5,7 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -187,6 +188,36 @@ TEST_F(SystemTest, InitFailsForUnknownMotor)
   auto info = make_info();
   info.joints[0].name = "not_a_motor";
   EXPECT_EQ(hw_->on_init(info), CallbackReturn::ERROR);
+}
+
+TEST_F(SystemTest, InitRejectsServoIdOutsideTheBusRange)
+{
+  auto info = make_info();
+  // 257 would wrap to 1 in the 8-bit ID field and drive shoulder_pan's servo.
+  info.joints[1].parameters["id"] = "257";
+  EXPECT_EQ(hw_->on_init(info), CallbackReturn::ERROR);
+}
+
+TEST_F(SystemTest, InitValidatesBusAndGainParameters)
+{
+  const std::vector<std::pair<std::string, std::string>> invalid = {
+    {"baudrate", "0"},
+    {"timeout_us", "0"},
+    {"max_consecutive_read_failures", "0"},
+    {"p_coefficient", "256"},
+    {"d_coefficient", "1000"},
+  };
+  for (const auto & [key, value] : invalid) {
+    auto info = make_info();
+    info.hardware_parameters[key] = value;
+    SO101SystemHardware hw;
+    EXPECT_EQ(hw.on_init(info), CallbackReturn::ERROR) << key << "=" << value;
+  }
+
+  // A negative gain is the documented way to leave the servo's value alone.
+  auto info = make_info();
+  info.hardware_parameters["i_coefficient"] = "-1";
+  EXPECT_EQ(hw_->on_init(info), CallbackReturn::SUCCESS);
 }
 
 TEST_F(SystemTest, ConfigureReadsPoseAtMiddleOfRange)
