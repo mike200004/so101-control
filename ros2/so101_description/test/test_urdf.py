@@ -29,8 +29,8 @@ def test_has_six_actuated_joints(urdf):
 
 
 def test_ros2_control_limits_match_urdf_limits(urdf):
-    """The plugin clamps/maps using the command interface min/max, so they
-    must never drift from the kinematic limits."""
+    """The plugin maps the gripper's calibrated range onto the command
+    interface min/max, so they must never drift from the kinematic limits."""
     limits = {
         j.get('name'): (float(j.find('limit').get('lower')), float(j.find('limit').get('upper')))
         for j in urdf.findall('joint') if j.get('type') == 'revolute'

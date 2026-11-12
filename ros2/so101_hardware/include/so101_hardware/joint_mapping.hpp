@@ -29,8 +29,9 @@ class JointMapping
 {
 public:
   JointMapping() = default;
-  /// `lower`/`upper` are the URDF limits; required for kLinear, used for
-  /// command clamping in both modes.
+  /// `lower`/`upper` are the URDF limits. kLinear requires them and maps the
+  /// calibrated range onto them; kRevolute does not use them. Commands are
+  /// clamped to the calibrated raw range only (see position_to_raw).
   JointMapping(MappingKind kind, const MotorCalibration & cal, double lower, double upper);
 
   double raw_to_position(int raw) const;

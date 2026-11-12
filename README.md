@@ -88,6 +88,12 @@ difference is under 0.05° anywhere in the workspace, and a unit test pins it.
 The gripper is mapped linearly from its calibrated range onto the URDF jaw
 limits (LeRobot reports it as 0–100 %).
 
+**Command limits.** The driver clamps every command to the joint's calibrated
+encoder range, not to the URDF limits. The calibrated range is the arm's
+physical travel, usually a few degrees wider than the URDF limits (and a full
+turn for `wrist_roll`), so keep goals inside the URDF limits yourself (MoveIt
+does this).
+
 **Safety on startup.** Configure fails, before any torque is applied, if a servo
 is missing, is not an STS3215, or has a stored homing offset that differs from
 the calibration file (the usual symptom of the wrong port, the other arm, or a

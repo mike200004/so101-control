@@ -12,8 +12,9 @@ class SerialPort final : public Transport
 {
 public:
   /// Opens `device` in raw 8N1 mode at `baudrate`. Throws TransportError.
-  /// Non-standard rates such as 1 Mbaud (the STS3215 default) are supported
-  /// on both Linux (termios2/BOTHER fallback) and macOS (IOSSIOSPEED).
+  /// On Linux the rate must have a termios constant (1 Mbaud, the STS3215
+  /// default, is B1000000); other rates throw. On macOS any rate is set
+  /// through IOSSIOSPEED.
   SerialPort(const std::string & device, int baudrate);
   ~SerialPort() override;
 
