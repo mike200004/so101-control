@@ -358,3 +358,15 @@ TEST_F(SystemTest, DeactivateReleasesTorque)
     EXPECT_EQ(sim_->reg_u8(id, reg::TORQUE_ENABLE), 0) << int(id);
   }
 }
+
+TEST_F(SystemTest, TorqueOffKeepsGoingPastAServoThatDoesNotAnswer)
+{
+  init_and_export();
+  ASSERT_EQ(hw_->on_configure(kUnconfigured), CallbackReturn::SUCCESS);
+  ASSERT_EQ(hw_->on_activate(kInactive), CallbackReturn::SUCCESS);
+  sim_->set_silent(3, true);
+  hw_->on_deactivate(kActive);
+  for (int id : {1, 2, 4, 5, 6}) {
+    EXPECT_EQ(sim_->reg_u8(static_cast<uint8_t>(id), reg::TORQUE_ENABLE), 0) << id;
+  }
+}

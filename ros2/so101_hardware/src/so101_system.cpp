@@ -318,12 +318,30 @@ void SO101SystemHardware::apply_gains(Joint & j)
 
 void SO101SystemHardware::set_torque(bool enable)
 {
-  std::vector<std::pair<uint8_t, std::vector<uint8_t>>> data;
+  // One acknowledged write per servo, not a sync write: servos never answer a
+  // sync write, so a servo that missed it would go unnoticed (still holding
+  // after torque off, or limp after torque on). Keep going past a servo that
+  // doesn't answer, so the rest still get the change.
+  std::string missed;
   for (const auto & j : joints_) {
-    data.push_back({j.id, {static_cast<uint8_t>(enable ? 1 : 0)}});
+    bool acked = false;
+    for (int attempt = 0; attempt < 3 && !acked; ++attempt) {
+      try {
+        bus_->write_u8(j.id, reg::TORQUE_ENABLE, enable ? 1 : 0);
+        acked = true;
+      } catch (const feetech::CommError &) {
+      }
+    }
+    if (!acked) {
+      missed += " " + j.name;
+    }
   }
-  bus_->sync_write(reg::TORQUE_ENABLE, 1, data);
-  torque_enabled_ = enable;
+  // If any servo might still be holding, say so, so shutdown tries again.
+  torque_enabled_ = enable || !missed.empty();
+  if (!missed.empty()) {
+    throw feetech::CommError(
+      std::string("no reply to torque ") + (enable ? "on" : "off") + " from:" + missed);
+  }
 }
 
 SO101SystemHardware::CallbackReturn SO101SystemHardware::on_activate(const rclcpp_lifecycle::State &)
