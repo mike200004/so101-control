@@ -96,6 +96,7 @@ private:
   std::unique_ptr<feetech::Transport> transport_;
   std::unique_ptr<feetech::Bus> bus_;
   int consecutive_read_failures_{0};
+  int write_cycles_{0};
   bool torque_enabled_{false};
 };
 

@@ -311,7 +311,7 @@ TEST_F(SystemTest, OutOfRangeCommandsAreClampedToCalibration)
   EXPECT_EQ(goal_raw("wrist_flex"), calibration_.at("wrist_flex").range_max);
 }
 
-TEST_F(SystemTest, UnchangedCommandsDoNotUseTheBus)
+TEST_F(SystemTest, UnchangedCommandsAreOnlyResentEveryTenCycles)
 {
   init_and_export();
   ASSERT_EQ(hw_->on_configure(kUnconfigured), CallbackReturn::SUCCESS);
@@ -319,13 +319,15 @@ TEST_F(SystemTest, UnchangedCommandsDoNotUseTheBus)
   set_command("shoulder_pan", 0.2);
   cycle();
   const int goal = goal_raw("shoulder_pan");
-  sim_->set_reg_u16(1, reg::GOAL_POSITION, 1234);  // detect any rewrite
+  // Pretend the next goal packet got lost: the servo has some other goal.
+  sim_->set_reg_u16(1, reg::GOAL_POSITION, 1234);
   cycle();
-  EXPECT_EQ(goal_raw("shoulder_pan"), 1234);
+  EXPECT_EQ(goal_raw("shoulder_pan"), 1234);  // unchanged command: not resent yet
+  cycle(9);
+  EXPECT_EQ(goal_raw("shoulder_pan"), goal);  // but put back within 10 cycles
   set_command("shoulder_pan", 0.3);
   cycle();
-  EXPECT_NE(goal_raw("shoulder_pan"), 1234);
-  EXPECT_NE(goal_raw("shoulder_pan"), goal);
+  EXPECT_NE(goal_raw("shoulder_pan"), goal);  // a new command goes out right away
 }
 
 TEST_F(SystemTest, ToleratesTransientDropoutsButFailsOnPersistentOnes)

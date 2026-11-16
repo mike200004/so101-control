@@ -102,7 +102,8 @@ enabling torque, so the arm never jumps to an old goal.
 
 **Bus efficiency.** One control cycle is a single 4-byte sync read (position +
 velocity for all six servos) and, only if a goal changed, one sync write: about
-1 ms of bus time at 1 Mbaud, so 100 Hz control has plenty of margin.
+1 ms of bus time at 1 Mbaud, so 100 Hz control has plenty of margin. Every 10th
+cycle all goals are sent again, since a lost sync write is never acknowledged.
 
 **EEPROM care.** PID gains (LeRobot's defaults P=16, I=0, D=32) live in EEPROM;
 the driver reads them first and only unlocks and writes when they differ.

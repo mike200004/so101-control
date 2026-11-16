@@ -483,14 +483,19 @@ return_type SO101SystemHardware::write(const rclcpp::Time &, const rclcpp::Durat
   if (!bus_) {
     return return_type::ERROR;
   }
+  // Goals go out in a sync write, which servos never acknowledge. Unchanged
+  // goals are skipped to keep bus time free for reads, but every 10th cycle
+  // all of them are sent again, so one lost packet can't leave a servo on an
+  // old goal for good.
+  const bool resend_all = ++write_cycles_ % 10 == 0;
   std::vector<std::pair<uint8_t, std::vector<uint8_t>>> goals;
   for (auto & j : joints_) {
     if (!std::isfinite(j.command)) {
       continue;  // no controller has claimed this joint yet
     }
     const int raw = j.mapping.position_to_raw(j.command);
-    if (raw == j.last_goal_raw) {
-      continue;  // unchanged: keep bus time free for reads
+    if (raw == j.last_goal_raw && !resend_all) {
+      continue;
     }
     goals.push_back({j.id, feetech::u16_le(
         feetech::encode_sign_magnitude(raw, reg::kPositionSignBit))});
