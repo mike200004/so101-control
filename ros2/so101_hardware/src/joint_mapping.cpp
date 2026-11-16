@@ -69,8 +69,10 @@ int JointMapping::position_to_raw(double position) const
   if (!std::isfinite(raw)) {
     throw std::invalid_argument("joint mapping: non-finite position command");
   }
-  const long r = std::lround(raw);
-  return static_cast<int>(std::clamp<long>(r, cal_.range_min, cal_.range_max));
+  // Clamp before rounding: std::lround overflows for a huge command (it gave
+  // LONG_MIN for +1e17 rad, which then clamped to the wrong end of the range).
+  raw = std::clamp(raw, static_cast<double>(cal_.range_min), static_cast<double>(cal_.range_max));
+  return static_cast<int>(std::lround(raw));
 }
 
 double JointMapping::raw_to_velocity(int raw_steps_per_s) const

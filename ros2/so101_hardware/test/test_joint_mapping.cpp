@@ -69,6 +69,8 @@ TEST(Revolute, CommandsAreClampedToCalibratedRange)
   JointMapping m(MappingKind::kRevolute, cal(907, 3146), -4, 4);
   EXPECT_EQ(m.position_to_raw(100.0), 3146);
   EXPECT_EQ(m.position_to_raw(-100.0), 907);
+  EXPECT_EQ(m.position_to_raw(1e17), 3146);
+  EXPECT_EQ(m.position_to_raw(-1e17), 907);
 }
 
 TEST(Revolute, RejectsNonFiniteCommands)
