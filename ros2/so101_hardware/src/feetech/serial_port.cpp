@@ -82,6 +82,10 @@ SerialPort::SerialPort(const std::string & device, int baudrate)
 SerialPort::~SerialPort()
 {
   if (fd_ >= 0) {
+    // Drop the exclusive flag set in configure(). It only clears by itself on
+    // the last close, and the fake bus keeps its end open between clients, so
+    // the next open would fail with EBUSY.
+    ::ioctl(fd_, TIOCNXCL);
     ::close(fd_);
   }
 }
