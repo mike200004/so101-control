@@ -73,13 +73,19 @@ int main(int argc, char ** argv)
           continue;
         }
         ++found;
-        const unsigned model = bus.read_u16(id, reg::MODEL_NUMBER);
-        const int pos = read_position(bus, id);
-        const double volts = bus.read_u8(id, reg::PRESENT_VOLTAGE) / 10.0;
-        const int temp = bus.read_u8(id, reg::PRESENT_TEMPERATURE);
-        std::printf(
-          "%-4d %-7u %-9d %-8.1f %-6d%s\n", id, model, pos, volts, temp,
-          model == reg::kModelNumber ? "" : "  (not an STS3215)");
+        // A flaky servo answers the ping and then drops a read. Report it and
+        // keep scanning, instead of hiding every servo after it.
+        try {
+          const unsigned model = bus.read_u16(id, reg::MODEL_NUMBER);
+          const int pos = read_position(bus, id);
+          const double volts = bus.read_u8(id, reg::PRESENT_VOLTAGE) / 10.0;
+          const int temp = bus.read_u8(id, reg::PRESENT_TEMPERATURE);
+          std::printf(
+            "%-4d %-7u %-9d %-8.1f %-6d%s\n", id, model, pos, volts, temp,
+            model == reg::kModelNumber ? "" : "  (not an STS3215)");
+        } catch (const feetech::CommError &) {
+          std::printf("%-4d answered ping, then a read failed (check the wiring)\n", id);
+        }
       }
       std::printf("%d servo(s) found on %s\n", found, port.c_str());
       return found > 0 ? 0 : 1;
